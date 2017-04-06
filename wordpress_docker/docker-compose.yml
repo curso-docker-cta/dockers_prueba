@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+   db:
+     image: wordpress
+     volumes:
+       - wp:/var/www
+     restart: always
+     ports:
+      - "80:80"
+volumes:
+  wp:
+

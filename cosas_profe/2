@@ -1,0 +1,140 @@
+apt install bridge-utils
+
+ip addr show dev eno1
+2: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 88:51:fb:53:54:be brd ff:ff:ff:ff:ff:ff
+    inet 192.168.5.1/24 brd 192.168.5.255 scope global eno1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::2e55:f6a1:20dc:f2aa/64 scope link 
+       valid_lft forever preferred_lft forever
+
+brctl show
+
+docker network create --attachable [ --driver bridge ] --subnet 192.168.5.0/24 --ip-range 192.168.5.24/30 mibridge
+docker network ls
+NETWORK ID          NAME                    DRIVER              SCOPE
+a4b217b7b5b9        bridge                  bridge              local
+fc1edd62a629        dockercompose_default   bridge              local
+3ca477bff5c6        host                    host                local
+ad72272ee068        mibridge                bridge              local
+b7a73f0d8abb        none                    null                local
+
+brctl show
+bridge name    bridge id        STP enabled    interfaces
+br-ad72272ee068        8000.0242b1168d3b    no        
+br-fc1edd62a629        8000.02422130e7f9    no        
+docker0        8000.02425fd586e9    no        
+
+ip addr del 192.168.5.1/24 dev eno1
+ip route add default via 192.168.5.254
+
+ip link set br-ad72272ee068 up
+brctl addif br-ad72272ee068 eno1
+ping www.google.com
+PING www.google.com (216.58.214.164) 56(84) bytes of data.
+64 bytes from mad01s26-in-f164.1e100.net (216.58.214.164): icmp_seq=1 ttl=53 time=13.7 ms
+------------------------------------------------------------------------------------------------------------------------
+
+
+docker images | grep -v ID | awk {'print $3'} | while read i; do docker rmi --force $i; done ---->
+docker images -qa | xargs docker rmi
+
+docker volume ls -f dangling=true -q | xargs docker volume rm
+
+docker ps -qa | xargs docker rm [ -f ]
+----------------------------------------------------------------------------------
+
+docker run --device /dev/sda:/dev/xvda -ti debian
+root@1a87a772f74a:/# ls /dev/
+console  fd    mqueue  ptmx  random  stderr  stdout  urandom  zero
+core     full  null    pts   shm     stdin   tty     xvda
+root@1a87a772f74a:/# fd /dev/xvda 
+fdformat  fdisk     
+root@1a87a772f74a:/# fdisk -l /dev/xvda 
+
+---------------------------------------------------------------------------
+
+
+docker volume create mibbdd
+docker run -ti -v mibbdd:/mysql debian
+-----------------------------------------------------------------------------------------------
+
+- Ya tienes un docker-compose con persistencia de datos para mysql y wordpress??+1+1+1+1+1+1+1+1+1
+
+- Y qué tal con Galera?
+
+--------------------------------------------------------------------------------
+DOCKER MACHINE
+
+https://docs.docker.com/machine/install-machine/
+
+for i in {1..5}; do docker-machine create -d virtualbox --virtualbox-boot2docker-url http://192.168.5.24/boot2docker.iso nodo$i; done
+
+    Utiliza docker-machine:
+
+    Lanza el mysql en un nodo+1+1+1+1
+
+    Lanza el frontal web (wordpress) en otro nodo y que funcione+1+1
+
+    docker-machine $COMANDO where $COMANDO in:+1+1
+
+    ls
+
+    ssh
+
+    scp
+
+    env
+
+    create
+
+    rm
+
+
+function nomachine { eval $(env | awk -F= '/^DOCKER/ {print "unset "$1}'); }
+
+-----------------------------------------------------------------------------------
+Kernel a medida: http://pad.atkn.net/docker-kernel-custom
+--------------------------------------------------------------------------------
+
+Welcome to Consul:
+
+https://github.com/docker-library/docs/tree/master/consul
+https://hub.docker.com/r/progrium/consul/ <------- A probar
+
+# Lanzamos consul en 1 nodo: +1
+docker run -d --name node1 -p 8300:8300 -p 8301:8301/udp -p 8301:8301 -p 8302:8302/udp -p 8302:8302 -p 8400:8400 -p 8500:8500 -p 8600:53/udp -h node1 progrium/consul 
+-server -advertise 192.168.99.100 -bootstrap-expect 3  -ui-dir /ui
+
+# Nodo 2:
+docker run -d  -p 8300:8300 -p 8301:8301 -p 8301:8301/udp -p 8302:8302/udp -
+p 8302:8302 -p 8400:8400 -p 8500:8500  -p 8600:53/udp  --name node2 -h node2 progrium/consul -server -advertise 192.168.99.101 -join 192.168.99.100
+
+# Nodo 3:
+docker run -d -p 8301:8301 -p 8301:8301/udp -p 8302:8302/udp -p 8302:8302 -p 8300:8300 -p 8400:8400 -p 8500:8500 -p 8600:53/udp  --name node3 -h node3 progrium/consul -server -advertise 192.168.99.102 -join 192.168.99.100
+
+---------->https://hub.docker.com/r/gliderlabs/registrator/
+
+Definimos el dominio de consul en nuestro bind9 ----> /etc/bind9/named.conf.local
+
+zone "consul" IN {
+        type forward;
+        forward only;
+        forwarders { 192.168.99.100 port 8600; };
+};
+
+O mejor aún:
+
+zone "consul" IN {
+        type forward;
+        forward only;
+        forwarders {
+                192.168.99.100 port 8600;
+                192.168.99.101 port 8600;
+                192.168.99.102 port 8600;
+        };
+
+};
+
+
+

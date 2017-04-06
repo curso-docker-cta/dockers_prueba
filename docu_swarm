@@ -1,0 +1,38 @@
+##crear 5 nodos
+for i in {1..5}; do docker-machine create -d virtualbox --virtualbox-boot2docker-url http://192.168.5.24/boot2docker.iso nodo$i; done
+##crea el manager
+create -d virtualbox --virtualbox-boot2docker-url http://192.168.5.24/boot2docker.iso swarm-manager
+##borrar nodos docker
+for i in $(seq 1 5) ; do echo y | docker-machine rm nodo$i ; done
+##arrancar swarm en manager
+docker-machine ssh swarm-manager
+docker swarm init
+docker@grasa:~$ docker swarm init
+Error response from daemon: could not choose an IP address to advertise since this system has multiple addresses on different interfaces (10.0.2.15 on eth0 and 192.168.99.129 on eth1) - specify one with --advertise-addr
+docker@grasa:~$ docker swarm init --advertise-addr 192.168.99.129
+Swarm initialized: current node (hx72cczajwozmmfe2y7em1fcc) is now a manager.
+
+To add a worker to this swarm, run the following command:
+##ejecutar en los workers
+    docker swarm join \
+    --token SWMTKN-1-5aze5mvtz5o3q48bm1bvfh31nk5wzgvigfifkxlq83e06z9582-9j6lg4sujliq79z254vpq56tu \
+    192.168.99.129:2377
+##       			    \Sacar el comando de arriba para manager/
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+##creamos un servicio
+docker service create --name grasa -p 80:80 --replicas=5  glagunasp/puretrash
+docker service inspect --pretty grasa
+##lo arrancamos las veces que sean, 8 que somos to burros
+
+docker@swarm-manager:~$ docker service scale grasa=8
+grasa scaled to 8
+docker@swarm-manager:~$ docker node ls
+ID                           HOSTNAME       STATUS  AVAILABILITY  MANAGER STATUS
+41yl0d2xbcpa96iw1tvcd7lck    nodo5          Ready   Active        Reachable
+9ve8yc1pktp0t1s26o4gerlwf    nodo3          Ready   Active        Reachable
+gh7f67bnnt2al3d1eh4toqfak *  swarm-manager  Ready   Active        Reachable
+xtzadgrkkqwzd4r7g2bf8zoqb    nodo2          Ready   Active        Leader
+zoucuhffkfzjma884zavf0aq2    nodo1          Ready   Active        Reachable
+zuliuwthfdrd11lxn2i78twrg    nodo4          Ready   Active        Reachable
+

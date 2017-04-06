@@ -1,0 +1,27 @@
+#!/bin/bash
+
+BINARIO=$1
+RUTA_CHROOT=$2
+
+if [ $# -eq 0 ]
+        then echo "No se han introducido parametros"
+
+echo '$1' = BINARIO '$2' = RUTA_CHROOT
+exit
+fi
+
+ldd $BINARIO  | tail -n +2 | sed '$ d' | awk '{print$3}' | while read LIB_RUTA ; do dirname $LIB_RUTA ; done | while read LIB_RUTA_TEMP ; do mkdir -p ${RUTA_CHROOT}${LIB_RUTA_TEMP}; done
+ldd $BINARIO  | tail -n +2 | sed '$ d' | awk '{print$3}' | while read LIB_RUTA_LIB ; do cp ${LIB_RUTA_LIB} ${RUTA_CHROOT}${LIB_RUTA_LIB}; done
+
+
+LIBRERIA_ESTATICA=$(dirname $(ldd $BINARIO  | tail -n -1 | awk '{print$1}'))
+echo $LIBRERIA_ESTATICA
+mkdir -p  ${RUTA_CHROOT}${LIBRERIA_ESTATICA}
+cp $(ldd $BINARIO  | tail -n -1 | awk '{print$1}') ${RUTA_CHROOT}${LIBRERIA_ESTATICA}
+
+
+ldd $BINARIO  | tail -n +2 | sed '$ d' | awk '{print$3}'  | while read LIB_DE_LIB ; do ldd $LIB_DE_LIB | tail -n +2 | sed '$ d' | awk '{print$3}' ; done | while read LIB_LIB_PARA_RUTA ; do RUTA_DE_LIB_DE_LIB=$(dirname $LIB_LIB_PARA_RUTA) ; mkdir -p ${RUTA_CHROOT}${RUTA_DE_LIB_DE_LIB}; done
+ldd $BINARIO | tail -n +2 | sed '$ d' | awk '{print$3}' | while read LIB_DE_RUTA_LIB ; do cp ${LIB_DE_RUTA_LIB} ${RUTA_CHROOT}${LIB_DE_RUTA_LIB}; done
+
+mkdir -p ${RUTA_CHROOT}$(dirname $BINARIO)
+cp $BINARIO ${RUTA_CHROOT}$(dirname $BINARIO)
